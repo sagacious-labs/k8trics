@@ -82,6 +82,7 @@ func HyperionList(ctx context.Context, req *api.ListRequest) (chan *api.GetRespo
 			item, err := res.Recv()
 			if err == io.EOF {
 				close(ch)
+				return
 			}
 			if err != nil {
 				fmt.Println("[List Error]: ", err)
@@ -113,11 +114,12 @@ func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest) (chan *ap
 	go func() {
 		for {
 			item, err := res.Recv()
-			if err == io.EOF {
-				close(ch)
-			}
 			if err != nil {
-				continue
+				if err == io.EOF {
+					close(ch)
+				}
+
+				return
 			}
 
 			ch <- item
@@ -145,11 +147,12 @@ func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest) (chan *api.
 	go func() {
 		for {
 			item, err := res.Recv()
-			if err == io.EOF {
-				close(ch)
-			}
 			if err != nil {
-				continue
+				if err == io.EOF {
+					close(ch)
+				}
+
+				return
 			}
 
 			ch <- item
