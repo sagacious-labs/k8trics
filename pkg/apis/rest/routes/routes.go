@@ -18,5 +18,5 @@ func v1ApiRoutes(r *gin.Engine, handlers *handlers.Handlers) {
 	v1.GET("/module/:name/log", handlers.WatchLog)
 	v1.GET("/module/:name/data", handlers.WatchData)
 	v1.DELETE("/module/:name", handlers.Delete)
-	v1.POST("/module/:name", handlers.Apply)
+	v1.POST("/module", handlers.Apply)
 }

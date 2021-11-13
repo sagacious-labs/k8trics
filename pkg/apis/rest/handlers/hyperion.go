@@ -13,7 +13,7 @@ import (
 func (h *Handlers) Apply(c *gin.Context) {
 	req := api.ApplyRequest{}
 	if err := c.Bind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse request object"})
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "failed to parse request object: " + err.Error()})
 		return
 	}
 
