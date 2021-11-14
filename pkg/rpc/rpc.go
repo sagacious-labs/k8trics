@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -12,6 +13,11 @@ import (
 
 func host() string {
 	return fmt.Sprintf("%s:%s", utils.GetEnv("HYPERION_HOST", "0.0.0.0"), utils.GetEnv("HYPERION_PORT", "2310"))
+}
+
+// WatchResponse represents the response of the watch RPCs
+type WatchResponse struct {
+	Data map[string]interface{} `json:"data,omitempty"`
 }
 
 // HyperionApply is a wrapper around hyperion's `Apply` RPC
@@ -97,7 +103,7 @@ func HyperionList(ctx context.Context, req *api.ListRequest) (chan *api.GetRespo
 }
 
 // HyperionWatchData is a wrapper around hyperion's `WatchData` RPC
-func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest) (chan *api.WatchDataResponse, error) {
+func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest) (chan *WatchResponse, error) {
 	conn, err := grpc.Dial(host(), grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -109,7 +115,7 @@ func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest) (chan *ap
 		return nil, err
 	}
 
-	ch := make(chan *api.WatchDataResponse, 8)
+	ch := make(chan *WatchResponse, 8)
 
 	go func() {
 		for {
@@ -122,7 +128,9 @@ func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest) (chan *ap
 				return
 			}
 
-			ch <- item
+			ch <- &WatchResponse{
+				Data: parseWatchJSON(item.Data),
+			}
 		}
 	}()
 
@@ -130,7 +138,7 @@ func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest) (chan *ap
 }
 
 // HyperionWatchLog is a wrapper around hyperion's `WatchLog` RPC
-func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest) (chan *api.WatchLogResponse, error) {
+func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest) (chan *WatchResponse, error) {
 	conn, err := grpc.Dial(host(), grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -142,7 +150,7 @@ func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest) (chan *api.
 		return nil, err
 	}
 
-	ch := make(chan *api.WatchLogResponse, 8)
+	ch := make(chan *WatchResponse, 8)
 
 	go func() {
 		for {
@@ -155,9 +163,20 @@ func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest) (chan *api.
 				return
 			}
 
-			ch <- item
+			ch <- &WatchResponse{
+				Data: parseWatchJSON(item.Data),
+			}
 		}
 	}()
 
 	return ch, nil
+}
+
+// parseWatchJSON takes in a slice of byte and converts it into
+// map[string]interface{}
+//
+// If the method fails then it returns an empty map
+func parseWatchJSON(byt []byte) (mp map[string]interface{}) {
+	_ = json.Unmarshal(byt, &mp)
+	return
 }
