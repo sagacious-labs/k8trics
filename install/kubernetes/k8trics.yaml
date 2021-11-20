@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k8trics
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8trics
+  namespace: k8trics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8trics
+  namespace: k8trics
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8trics
+  namespace: k8trics
+  labels:
+    app: k8trics
+roleRef:
+  kind: ClusterRole
+  name: k8trics
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: k8trics
+  namespace: k8trics
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8trics
+  namespace: k8trics
+spec:
+  selector:
+    matchLabels:
+      app: k8trics
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: k8trics
+    spec:
+      serviceAccountName: k8trics
+      containers:
+      - name: k8trics
+        image: utkarsh23/k8trics:0.0.2
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8trics
+spec:
+  selector:
+    app: k8trics
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: LoadBalancer

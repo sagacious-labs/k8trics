@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hyperion
+spec: {}
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: hyperion-daemon
+  namespace: hyperion
+  labels:
+    app: hyperion-daemon
+    core.hyperion.io/master: "true"
+spec:
+  selector:
+    matchLabels:
+      app: hyperion-daemon
+  template:
+    metadata:
+      labels:
+        app: hyperion-daemon
+        core.hyperion.io/master: "true"
+    spec:
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      containers:
+        - name: hyperion-daemon
+          image: utkarsh23/hyperion:0.0.1
+          env:
+            - name: RUST_LOG
+              value: debug
+          securityContext:
+            privileged: true
+
+      terminationGracePeriodSeconds: 10
