@@ -10,6 +10,7 @@ import (
 
 func main() {
 	store := store.New()
+	utils.SetupLogger()
 
 	khandler, err := k8s.New(utils.GetEnv("KUBECONFIG", ""))
 	if err != nil {
