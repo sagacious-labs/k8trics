@@ -1,0 +1,9 @@
+.git
+.gitignore
+.vscode
+Dockerfile
+.dockerignore
+install
+ui*
+.DS_Store
+bin
