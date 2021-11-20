@@ -44,9 +44,7 @@ func setupClientset(kubeconfigLoc string) (*kubernetes.Clientset, error) {
 }
 
 func setupInformerFactory(cs *kubernetes.Clientset, ch chan struct{}) informers.SharedInformerFactory {
-	informer := informers.NewSharedInformerFactory(cs, 1*time.Minute)
-
-	informer.Start(ch)
+	informer := informers.NewSharedInformerFactory(cs, 1*time.Second)
 
 	return informer
 }

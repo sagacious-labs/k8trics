@@ -30,17 +30,15 @@ func (t *Tracker) Start() {
 }
 
 func (t *Tracker) handleAdd(obj interface{}) {
-	casted, ok := obj.(corev1.Pod)
+	casted, ok := obj.(*corev1.Pod)
 	if ok {
-		println("success create")
-		t.store.Upsert(casted)
+		t.store.Upsert(*casted)
 	}
 }
 
 func (t *Tracker) handleDelete(obj interface{}) {
-	casted, ok := obj.(corev1.Pod)
+	casted, ok := obj.(*corev1.Pod)
 	if ok {
-		println("success delete")
 		t.store.Delete(casted.GetName(), casted.GetNamespace())
 	}
 }

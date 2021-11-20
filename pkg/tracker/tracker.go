@@ -25,9 +25,11 @@ func New(khandler *k8s.K8s, store *store.PodStore) *Tracker {
 }
 
 func (t *Tracker) Start() {
-	t.khandler.Informers().Start(t.stop)
-
+	println("Attaching helpers")
 	t.pod.Start()
+
+	println("Staring the informer")
+	t.khandler.Informers().Start(t.stop)
 }
 
 func (t *Tracker) Stop() {
