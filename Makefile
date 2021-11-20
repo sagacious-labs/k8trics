@@ -7,6 +7,10 @@ GO_MODULE := github.com/sagacious-labs/k8trics
 run: compile-proto
 	go run ./cmd/.
 
+.PHONY: compile
+compile: compile-proto
+	go build -o ./bin/k8trics ./cmd/.
+
 .PHONY: compile-proto
 compile-proto:
 	mkdir -p ./pkg/protos && \
