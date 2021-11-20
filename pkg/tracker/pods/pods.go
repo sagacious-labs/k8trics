@@ -2,6 +2,7 @@ package pods
 
 import (
 	"github.com/sagacious-labs/k8trics/pkg/store"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	coreinformer "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -32,6 +33,7 @@ func (t *Tracker) Start() {
 func (t *Tracker) handleAdd(obj interface{}) {
 	casted, ok := obj.(*corev1.Pod)
 	if ok {
+		logrus.Debugln("Found pod: ", casted.Name)
 		t.store.Upsert(*casted)
 	}
 }
@@ -39,6 +41,7 @@ func (t *Tracker) handleAdd(obj interface{}) {
 func (t *Tracker) handleDelete(obj interface{}) {
 	casted, ok := obj.(*corev1.Pod)
 	if ok {
+		logrus.Debugln("Delete pod: ", casted.Name)
 		t.store.Delete(casted.GetName(), casted.GetNamespace())
 	}
 }
