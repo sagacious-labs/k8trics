@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sagacious-labs/k8trics/pkg/protos/v1alpha1/api"
@@ -17,7 +19,9 @@ func (h *Handlers) Apply(c *gin.Context) {
 		return
 	}
 
-	resp, err := rpc.HyperionApply(c.Request.Context(), &req)
+	resp, err := h.performRequest(func(ep string) (interface{}, error) {
+		return rpc.HyperionApply(c.Request.Context(), &req, ep)
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
 		return
@@ -37,7 +41,9 @@ func (h *Handlers) Delete(c *gin.Context) {
 		Core: &base.ModuleCore{Name: moduleName},
 	}
 
-	resp, err := rpc.HyperionDelete(c.Request.Context(), &req)
+	resp, err := h.performRequest(func(ep string) (interface{}, error) {
+		return rpc.HyperionDelete(c.Request.Context(), &req, ep)
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
 		return
@@ -57,7 +63,9 @@ func (h *Handlers) Get(c *gin.Context) {
 		Core: &base.ModuleCore{Name: moduleName},
 	}
 
-	resp, err := rpc.HyperionGet(c.Request.Context(), &req)
+	resp, err := h.performRequest(func(ep string) (interface{}, error) {
+		return rpc.HyperionGet(c.Request.Context(), &req, ep)
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
 		return
@@ -81,7 +89,18 @@ func (h *Handlers) List(c *gin.Context) {
 		},
 	}
 
-	resp, err := rpc.HyperionList(c.Request.Context(), &req)
+	resp, err := h.performRequestWithChannel(func(ep string) (chan interface{}, error) {
+		resp, err := rpc.HyperionList(c.Request.Context(), &req, ep)
+		ch := make(chan interface{}, 8)
+
+		go func() {
+			for data := range resp {
+				ch <- data
+			}
+		}()
+
+		return ch, err
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
 		return
@@ -111,7 +130,18 @@ func (h *Handlers) WatchData(c *gin.Context) {
 		},
 	}
 
-	resp, err := rpc.HyperionWatchData(c.Request.Context(), &req)
+	resp, err := h.performRequestWithChannel(func(ep string) (chan interface{}, error) {
+		resp, err := rpc.HyperionWatchData(c.Request.Context(), &req, ep)
+		ch := make(chan interface{}, 8)
+
+		go func() {
+			for data := range resp {
+				ch <- data
+			}
+		}()
+
+		return ch, err
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
 		return
@@ -141,7 +171,18 @@ func (h *Handlers) WatchLog(c *gin.Context) {
 		},
 	}
 
-	resp, err := rpc.HyperionWatchLog(c.Request.Context(), &req)
+	resp, err := h.performRequestWithChannel(func(ep string) (chan interface{}, error) {
+		resp, err := rpc.HyperionWatchLog(c.Request.Context(), &req, ep)
+		ch := make(chan interface{}, 8)
+
+		go func() {
+			for data := range resp {
+				ch <- data
+			}
+		}()
+
+		return ch, err
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
 		return
@@ -156,4 +197,71 @@ func (h *Handlers) WatchLog(c *gin.Context) {
 		c.SSEvent("log", item)
 		return true
 	})
+}
+
+func (h *Handlers) performRequest(fn func(ep string) (interface{}, error)) (interface{}, error) {
+	errs := []error{}
+	ress := []interface{}{}
+
+	for _, pod := range h.store.GetByLabels(map[string]string{
+		"core.hyperion.io/master": "true",
+	}) {
+		endpoint, err := pod.Endpoint()
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		res, err := fn(endpoint)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		ress = append(ress, res)
+	}
+
+	return ress, mergeErrors(errs)
+}
+
+func (h *Handlers) performRequestWithChannel(fn func(ep string) (chan interface{}, error)) (chan interface{}, error) {
+	errs := []error{}
+	centralCh := make(chan interface{}, 8)
+
+	for _, pod := range h.store.GetByLabels(map[string]string{
+		"core.hyperion.io/master": "true",
+	}) {
+		endpoint, err := pod.Endpoint()
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		res, err := fn(endpoint)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		go func() {
+			for data := range res {
+				centralCh <- data
+			}
+		}()
+	}
+
+	return centralCh, mergeErrors(errs)
+}
+func mergeErrors(errs []error) error {
+	if len(errs) == 0 {
+		return nil
+	}
+
+	errStrs := []string{}
+
+	for _, err := range errs {
+		errStrs = append(errStrs, err.Error())
+	}
+
+	return errors.New(strings.Join(errStrs, "\n"))
 }
