@@ -7,13 +7,8 @@ import (
 	"io"
 
 	"github.com/sagacious-labs/k8trics/pkg/protos/v1alpha1/api"
-	"github.com/sagacious-labs/k8trics/pkg/utils"
 	"google.golang.org/grpc"
 )
-
-func host() string {
-	return fmt.Sprintf("%s:%s", utils.GetEnv("HYPERION_HOST", "0.0.0.0"), utils.GetEnv("HYPERION_PORT", "2310"))
-}
 
 // WatchResponse represents the response of the watch RPCs
 type WatchResponse struct {
@@ -21,8 +16,8 @@ type WatchResponse struct {
 }
 
 // HyperionApply is a wrapper around hyperion's `Apply` RPC
-func HyperionApply(ctx context.Context, req *api.ApplyRequest) (*api.ApplyResponse, error) {
-	conn, err := grpc.Dial(host(), grpc.WithInsecure())
+func HyperionApply(ctx context.Context, req *api.ApplyRequest, host string) (*api.ApplyResponse, error) {
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +32,8 @@ func HyperionApply(ctx context.Context, req *api.ApplyRequest) (*api.ApplyRespon
 }
 
 // HyperionDelete is a wrapper around hyperion's `Delete` RPC
-func HyperionDelete(ctx context.Context, req *api.DeleteRequest) (*api.DeleteResponse, error) {
-	conn, err := grpc.Dial(host(), grpc.WithInsecure())
+func HyperionDelete(ctx context.Context, req *api.DeleteRequest, host string) (*api.DeleteResponse, error) {
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +48,8 @@ func HyperionDelete(ctx context.Context, req *api.DeleteRequest) (*api.DeleteRes
 }
 
 // HyperionGet is a wrapper around hyperion's `Get` RPC
-func HyperionGet(ctx context.Context, req *api.GetRequest) (*api.GetResponse, error) {
-	conn, err := grpc.Dial(host(), grpc.WithInsecure())
+func HyperionGet(ctx context.Context, req *api.GetRequest, host string) (*api.GetResponse, error) {
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +64,8 @@ func HyperionGet(ctx context.Context, req *api.GetRequest) (*api.GetResponse, er
 }
 
 // HyperionList is a wrapper around hyperion's `List` RPC
-func HyperionList(ctx context.Context, req *api.ListRequest) (chan *api.GetResponse, error) {
-	conn, err := grpc.Dial(host(), grpc.WithInsecure())
+func HyperionList(ctx context.Context, req *api.ListRequest, host string) (chan *api.GetResponse, error) {
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +98,8 @@ func HyperionList(ctx context.Context, req *api.ListRequest) (chan *api.GetRespo
 }
 
 // HyperionWatchData is a wrapper around hyperion's `WatchData` RPC
-func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest) (chan *WatchResponse, error) {
-	conn, err := grpc.Dial(host(), grpc.WithInsecure())
+func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest, host string) (chan *WatchResponse, error) {
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
@@ -138,8 +133,8 @@ func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest) (chan *Wa
 }
 
 // HyperionWatchLog is a wrapper around hyperion's `WatchLog` RPC
-func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest) (chan *WatchResponse, error) {
-	conn, err := grpc.Dial(host(), grpc.WithInsecure())
+func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest, host string) (chan *WatchResponse, error) {
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
