@@ -53,7 +53,10 @@ spec:
       serviceAccountName: k8trics
       containers:
       - name: k8trics
-        image: utkarsh23/k8trics:0.0.2
+        image: utkarsh23/k8trics:v0.0.1
+        env:
+          - name: K8TRICS_LOG_LEVEL
+            value: debug
         resources:
           limits:
             memory: "128Mi"
@@ -65,6 +68,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: k8trics
+  namespace: k8trics
 spec:
   selector:
     app: k8trics

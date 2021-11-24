@@ -28,11 +28,36 @@ spec:
           effect: NoSchedule
       containers:
         - name: hyperion-daemon
-          image: utkarsh23/hyperion:0.0.1
+          image: utkarsh23/hyperion:v0.0.1
+          ports:
+            - containerPort: 2310
           env:
             - name: RUST_LOG
-              value: debug
+              value: trace
           securityContext:
             privileged: true
-
+            runAsGroup: 0
+            runAsUser: 0
+          volumeMounts:
+            - name: host-proc-fs
+              mountPath: /hostfs/procfs
+            - name: host-modules
+              mountPath: /lib/modules
+            - name: host-sys
+              mountPath: /sys
+            - name: host-usr-src
+              mountPath: /usr/src
+      volumes:
+        - name: host-proc-fs
+          hostPath:
+            path: /hostfs/procfs
+        - name: host-modules
+          hostPath:
+            path: /lib/modules
+        - name: host-sys
+          hostPath:
+            path: /sys
+        - name: host-usr-src
+          hostPath:
+            path: /usr/src
       terminationGracePeriodSeconds: 10
