@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -131,7 +132,8 @@ func (h *Handlers) WatchData(c *gin.Context) {
 	}
 
 	resp, err := h.performRequestWithChannel(func(ep string) (chan interface{}, error) {
-		resp, err := rpc.HyperionWatchData(c.Request.Context(), &req, ep)
+		ctx := context.WithValue(c.Request.Context(), "pod_store", h.store)
+		resp, err := rpc.HyperionWatchData(ctx, &req, ep)
 		ch := make(chan interface{}, 8)
 
 		go func() {

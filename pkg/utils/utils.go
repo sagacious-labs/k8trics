@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 )
 
 // GetEnv takes in the environmental variable key and a fallback
@@ -17,6 +20,8 @@ func GetEnv(key, fallback string) string {
 	return fallback
 }
 
+// SetupLogger reads environmental variable and sets up logrus
+// logger log level
 func SetupLogger() {
 	logrus.SetReportCaller(true)
 
@@ -40,4 +45,17 @@ func SetupLogger() {
 	}
 
 	logrus.SetLevel(logLevel)
+}
+
+// TrimPodTemplateHash takes in a pod and tries to remove the pod template
+// hash from the pod name. If no pod template hash is found then pod name
+// is returned without any trimming
+func TrimPodTemplateHash(pod *v1.Pod) string {
+	labels := pod.GetLabels()
+	podTemplateHash, ok := labels["pod-template-hash"]
+	if !ok {
+		return pod.GetName()
+	}
+
+	return strings.TrimSuffix(pod.GetName(), fmt.Sprintf("-%s", podTemplateHash))
 }

@@ -53,10 +53,11 @@ spec:
       serviceAccountName: k8trics
       containers:
       - name: k8trics
-        image: utkarsh23/k8trics:v0.0.1
+        image: utkarsh23/k8trics:v0.0.1-alpha3
+        imagePullPolicy: Always
         env:
           - name: K8TRICS_LOG_LEVEL
-            value: debug
+            value: trace
         resources:
           limits:
             memory: "128Mi"

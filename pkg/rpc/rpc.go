@@ -2,16 +2,21 @@ package rpc
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/sagacious-labs/k8trics/pkg/protos/v1alpha1/api"
+	"github.com/sagacious-labs/k8trics/pkg/store"
+	"github.com/sagacious-labs/k8trics/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
-// WatchResponse represents the response of the watch RPCs
-type WatchResponse struct {
+// WatchDataResponse represents the response of the watch RPCs
+type WatchDataResponse struct {
 	Data map[string]interface{} `json:"data,omitempty"`
 }
 
@@ -98,7 +103,12 @@ func HyperionList(ctx context.Context, req *api.ListRequest, host string) (chan 
 }
 
 // HyperionWatchData is a wrapper around hyperion's `WatchData` RPC
-func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest, host string) (chan *WatchResponse, error) {
+func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest, host string) (chan *WatchDataResponse, error) {
+	store, ok := ctx.Value("pod_store").(*store.PodStore)
+	if !ok {
+		return nil, errors.New("pod store not found")
+	}
+
 	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -110,7 +120,7 @@ func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest, host stri
 		return nil, err
 	}
 
-	ch := make(chan *WatchResponse, 8)
+	ch := make(chan *WatchDataResponse, 8)
 
 	go func() {
 		for {
@@ -123,8 +133,22 @@ func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest, host stri
 				return
 			}
 
-			ch <- &WatchResponse{
-				Data: parseWatchJSON(item.Data),
+			data := parseWatchDataJSON(item.Data)
+			cid, ok := data["container_id"].(string)
+			if !ok {
+				logrus.Warn("container_id not found in the retrieved data")
+				continue
+			}
+
+			pod, ok := store.GetByContainerID(cid)
+			if !ok {
+				logrus.Warn("no pod found for container id: ", cid)
+				continue
+			}
+			data["name"] = utils.TrimPodTemplateHash(&pod.Pod)
+
+			ch <- &WatchDataResponse{
+				Data: data,
 			}
 		}
 	}()
@@ -133,7 +157,7 @@ func HyperionWatchData(ctx context.Context, req *api.WatchDataRequest, host stri
 }
 
 // HyperionWatchLog is a wrapper around hyperion's `WatchLog` RPC
-func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest, host string) (chan *WatchResponse, error) {
+func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest, host string) (chan string, error) {
 	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -145,7 +169,7 @@ func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest, host string
 		return nil, err
 	}
 
-	ch := make(chan *WatchResponse, 8)
+	ch := make(chan string, 8)
 
 	go func() {
 		for {
@@ -158,20 +182,29 @@ func HyperionWatchLog(ctx context.Context, req *api.WatchLogRequest, host string
 				return
 			}
 
-			ch <- &WatchResponse{
-				Data: parseWatchJSON(item.Data),
-			}
+			ch <- parseWatchLog(item.Data)
 		}
 	}()
 
 	return ch, nil
 }
 
-// parseWatchJSON takes in a slice of byte and converts it into
+// parseWatchDataJSON takes in a slice of byte and converts it into
 // map[string]interface{}
 //
 // If the method fails then it returns an empty map
-func parseWatchJSON(byt []byte) (mp map[string]interface{}) {
+func parseWatchDataJSON(byt []byte) (mp map[string]interface{}) {
 	_ = json.Unmarshal(byt, &mp)
 	return
+}
+
+func parseWatchLog(byt []byte) string {
+	res := []byte{}
+
+	_, err := base64.StdEncoding.Decode(res, byt)
+	if err != nil {
+		logrus.Warn("failed to decode the log message")
+	}
+
+	return string(res)
 }

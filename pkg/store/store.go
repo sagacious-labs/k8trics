@@ -2,8 +2,10 @@ package store
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -27,6 +29,7 @@ func (ps *PodStore) Upsert(pod v1.Pod) {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
+	logrus.Println("Found pod with containers: ", (K8tricsPod{pod}).ContainerIDs())
 	ps.internal[fmt.Sprintf("%s.%s", pod.GetNamespace(), pod.GetName())] = K8tricsPod{pod}
 }
 
@@ -51,6 +54,29 @@ func (ps *PodStore) GetByLabels(labels map[string]string) (pods []K8tricsPod) {
 	}
 
 	return
+}
+
+// GetByContainerID takes in a container ID and returns the pod that is running the container
+func (ps *PodStore) GetByContainerID(containerID string) (*K8tricsPod, bool) {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	for _, pod := range ps.internal {
+		for _, id := range pod.ContainerIDs() {
+			splitted := strings.Split(id, "://")
+			if len(splitted) != 2 {
+				continue
+			}
+
+			id = splitted[1]
+
+			if id == containerID {
+				return &pod, true
+			}
+		}
+	}
+
+	return nil, false
 }
 
 // Delete takes in a name and namespace of a pod and deletes the

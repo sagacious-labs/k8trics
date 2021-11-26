@@ -32,7 +32,9 @@ func (t *Tracker) Start() {
 
 func (t *Tracker) handleAdd(obj interface{}) {
 	casted, ok := obj.(*corev1.Pod)
+	println("WHOOOPS")
 	if ok {
+		println("WHOOOPSYYYY")
 		logrus.Debugln("Found pod: ", casted.Name)
 		t.store.Upsert(*casted)
 	}

@@ -28,7 +28,8 @@ spec:
           effect: NoSchedule
       containers:
         - name: hyperion-daemon
-          image: utkarsh23/hyperion:v0.0.1
+          image: utkarsh23/hyperion:v0.0.1-alpha1
+          imagePullPolicy: Always
           ports:
             - containerPort: 2310
           env:
