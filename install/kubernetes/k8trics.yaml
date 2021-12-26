@@ -54,7 +54,7 @@ spec:
       containers:
       - name: k8trics
         image: utkarsh23/k8trics:v0.0.1-alpha4
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: K8TRICS_LOG_LEVEL
             value: trace
