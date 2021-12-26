@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -199,12 +198,5 @@ func parseWatchDataJSON(byt []byte) (mp map[string]interface{}) {
 }
 
 func parseWatchLog(byt []byte) string {
-	res := []byte{}
-
-	_, err := base64.StdEncoding.Decode(res, byt)
-	if err != nil {
-		logrus.Warn("failed to decode the log message")
-	}
-
-	return string(res)
+	return string(byt)
 }
